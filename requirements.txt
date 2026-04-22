@@ -1,0 +1,41 @@
+# =========================
+# CORE
+# =========================
+numpy
+pandas
+pillow
+
+# =========================
+# MACHINE LEARNING
+# =========================
+torch
+torchvision
+torchaudio
+scikit-learn
+transformers
+datasets
+
+# =========================
+# BACKEND (FastAPI)
+# =========================
+fastapi
+uvicorn[standard]
+python-multipart
+
+# =========================
+# FRONTEND (Streamlit)
+# =========================
+streamlit
+requests
+
+# =========================
+# EXPERIMENT TRACKING
+# =========================
+wandb
+
+# =========================
+# DEV TOOLS
+# =========================
+black
+ruff
+pytest
