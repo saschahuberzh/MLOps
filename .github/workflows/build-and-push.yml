@@ -51,14 +51,8 @@ jobs:
           ORIGINAL_SHA="$(git rev-parse HEAD)"
           TMP_DIR="$(mktemp -d)"
 
-          echo "Original sha: ${ORIGINAL_SHA}"
-          echo "Temp dir: ${TMP_DIR}"
-
           git checkout model-v1
           dvc pull
-
-          echo "Files after dvc pull on model-v1:"
-          find . -maxdepth 4 -type f | sort
 
           mkdir -p "${TMP_DIR}/artifacts"
 
@@ -70,6 +64,7 @@ jobs:
             cp model/artifacts/model.pt "${TMP_DIR}/artifacts/model.pt"
           else
             echo "ERROR: model.pt not found after dvc pull"
+            find . -maxdepth 4 -type f | sort
             exit 1
           fi
 
@@ -86,12 +81,20 @@ jobs:
           cp "${TMP_DIR}/artifacts/model.pt" model/artifacts/model.pt
           cp "${TMP_DIR}/recycling_info.json" model/recycling_info.json
 
-          echo "Final files before docker compose build:"
+          echo "Files before docker compose build:"
           ls -lah model
           ls -lah model/artifacts
-
           test -f model/artifacts/model.pt
           test -f model/recycling_info.json
+
+      - name: Show dockerignore
+        run: |
+          if [ -f .dockerignore ]; then
+            echo "=== .dockerignore ==="
+            cat .dockerignore
+          else
+            echo "No .dockerignore found"
+          fi
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
@@ -104,7 +107,17 @@ jobs:
         uses: docker/setup-compose-action@v2
 
       - name: Build with Docker Compose
-        run: docker compose build
+        run: docker compose build --no-cache backend
+
+      - name: Verify model exists inside built backend image
+        run: |
+          docker compose run --rm --entrypoint sh backend -c '
+            echo "=== /app/model ==="
+            ls -lah /app/model || true
+            echo "=== /app/model/artifacts ==="
+            ls -lah /app/model/artifacts || true
+            test -f /app/model/artifacts/model.pt
+          '
 
       - name: Push with Docker Compose
         run: docker compose push
