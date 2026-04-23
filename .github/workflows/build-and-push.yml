@@ -46,10 +46,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          ORIGINAL_REF="$(git rev-parse --abbrev-ref HEAD || true)"
           ORIGINAL_SHA="$(git rev-parse HEAD)"
 
-          echo "Original ref: ${ORIGINAL_REF}"
           echo "Original sha: ${ORIGINAL_SHA}"
 
           git checkout model-v1
