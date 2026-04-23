@@ -52,18 +52,20 @@ jobs:
           TMP_DIR="$(mktemp -d)"
 
           echo "Original sha: ${ORIGINAL_SHA}"
-          echo "Using temp dir: ${TMP_DIR}"
+          echo "Temp dir: ${TMP_DIR}"
 
           git checkout model-v1
           dvc pull
 
           echo "Files after dvc pull on model-v1:"
-          find . -maxdepth 3 -type f | sort
+          find . -maxdepth 4 -type f | sort
 
           mkdir -p "${TMP_DIR}/artifacts"
 
           if [ -f model.pt ]; then
             cp model.pt "${TMP_DIR}/artifacts/model.pt"
+          elif [ -f model/model.pt ]; then
+            cp model/model.pt "${TMP_DIR}/artifacts/model.pt"
           elif [ -f model/artifacts/model.pt ]; then
             cp model/artifacts/model.pt "${TMP_DIR}/artifacts/model.pt"
           else
