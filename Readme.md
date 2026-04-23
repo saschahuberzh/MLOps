@@ -138,4 +138,4 @@ gcloud run deploy backend \
 
 # Remove
 conda deactivate  
-conda remove -n recycling-ai --all  
+conda remove -n recycling-ai --all    
