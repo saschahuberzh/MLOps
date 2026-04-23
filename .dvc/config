@@ -1,0 +1,4 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = gs://recycling-ai-mlops-sascha/recycling-dvc
