@@ -54,7 +54,7 @@ jobs:
           echo "Available DVC files on tag:"
           find . -maxdepth 3 -name "*.dvc" -o -name "dvc.yaml"
 
-          dvc pull model.pt.dvc
+          dvc pull
 
           git checkout "${ORIGINAL_SHA}"
 
