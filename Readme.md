@@ -124,6 +124,17 @@ projects/93698602367/locations/global/workloadIdentityPools/github/providers/git
 GCP_SERVICE_ACCOUNT
 github-actions@mlops-zhaw-494207.iam.gserviceaccount.com
 
+Cloud run api aktivieren:  
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+
+Run backend:
+gcloud run deploy backend \
+  --image=europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/backend:latest \
+  --region=europe-west6 \
+  --platform=managed \
+  --allow-unauthenticated \
+  --port=8000
+
 # Remove
 conda deactivate  
 conda remove -n recycling-ai --all
