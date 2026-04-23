@@ -41,7 +41,7 @@ jobs:
       - name: Install DVC with GCS support
         run: pip install "dvc[gs]"
 
-      - name: Pull model from tag model-v1
+      - name: Pull model from tag model-v1 and place into model/artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -50,20 +50,31 @@ jobs:
           echo "Original sha: ${ORIGINAL_SHA}"
 
           git checkout model-v1
-
-          echo "Available DVC files on tag:"
-          find . -maxdepth 3 -name "*.dvc" -o -name "dvc.yaml"
-
           dvc pull
+
+          mkdir -p model/artifacts
+
+          cp -r model/artifacts/. model/artifacts/ 2>/dev/null || true
+
+          if [ -f model.pt ]; then
+            cp model.pt model/artifacts/model.pt
+          fi
+
+          if [ -f model/recycling_info.json ]; then
+            cp model/recycling_info.json model/recycling_info.json.tmp
+          fi
 
           git checkout "${ORIGINAL_SHA}"
 
-          echo "Restoring DVC-tracked files in workspace"
-          dvc checkout
+          mkdir -p model/artifacts
 
-          echo "Verifying expected files"
-          ls -lah model || true
-          test -f model.pt
+          if [ -f model/recycling_info.json.tmp ]; then
+            mv model/recycling_info.json.tmp model/recycling_info.json
+          fi
+
+          test -d model/artifacts
+          ls -lah model
+          ls -lah model/artifacts
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
