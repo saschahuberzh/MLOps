@@ -32,6 +32,8 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           token_format: access_token
+          create_credentials_file: true
+          export_environment_variables: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -47,34 +49,47 @@ jobs:
           set -euo pipefail
 
           ORIGINAL_SHA="$(git rev-parse HEAD)"
+          TMP_DIR="$(mktemp -d)"
+
           echo "Original sha: ${ORIGINAL_SHA}"
+          echo "Using temp dir: ${TMP_DIR}"
 
           git checkout model-v1
           dvc pull
 
-          mkdir -p model/artifacts
+          echo "Files after dvc pull on model-v1:"
+          find . -maxdepth 3 -type f | sort
 
-          cp -r model/artifacts/. model/artifacts/ 2>/dev/null || true
+          mkdir -p "${TMP_DIR}/artifacts"
 
           if [ -f model.pt ]; then
-            cp model.pt model/artifacts/model.pt
+            cp model.pt "${TMP_DIR}/artifacts/model.pt"
+          elif [ -f model/artifacts/model.pt ]; then
+            cp model/artifacts/model.pt "${TMP_DIR}/artifacts/model.pt"
+          else
+            echo "ERROR: model.pt not found after dvc pull"
+            exit 1
           fi
 
           if [ -f model/recycling_info.json ]; then
-            cp model/recycling_info.json model/recycling_info.json.tmp
+            cp model/recycling_info.json "${TMP_DIR}/recycling_info.json"
+          else
+            echo "ERROR: model/recycling_info.json not found"
+            exit 1
           fi
 
           git checkout "${ORIGINAL_SHA}"
 
           mkdir -p model/artifacts
+          cp "${TMP_DIR}/artifacts/model.pt" model/artifacts/model.pt
+          cp "${TMP_DIR}/recycling_info.json" model/recycling_info.json
 
-          if [ -f model/recycling_info.json.tmp ]; then
-            mv model/recycling_info.json.tmp model/recycling_info.json
-          fi
-
-          test -d model/artifacts
+          echo "Final files before docker compose build:"
           ls -lah model
           ls -lah model/artifacts
+
+          test -f model/artifacts/model.pt
+          test -f model/recycling_info.json
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
