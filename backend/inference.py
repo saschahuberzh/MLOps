@@ -12,6 +12,8 @@ ARTIFACT_DIR = BASE_DIR.parent / "model" / "artifacts"
 MODEL_PATH = ARTIFACT_DIR / "model.pt"
 LABELS_PATH = ARTIFACT_DIR / "labels.json"
 
+print(MODEL_PATH, "THIS IS THE MODEL PATH")
+
 IMAGE_SIZE = (224, 224)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
