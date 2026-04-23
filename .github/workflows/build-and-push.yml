@@ -2,9 +2,14 @@ name: Build and Push to Artifact Registry
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to build (tag, branch, or commit SHA)'
+        required: true
+        default: 'main'
 
 permissions:
   contents: read
@@ -22,6 +27,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install DVC with GCS support
+        run: |
+          python -m pip install --upgrade pip
+          pip install "dvc[gcs]"
+
+      - name: Pull model via DVC
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-creds.json
+        run: |
+          printf '%s' '${{ secrets.GCP_SERVICE_ACCOUNT_KEY_JSON }}' > "$GOOGLE_APPLICATION_CREDENTIALS"
+          dvc pull
+          ls -R model
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -51,17 +77,5 @@ jobs:
           tags: |
             ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/backend:${{ github.sha }}
             ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push frontend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: frontend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/frontend:${{ github.sha }}
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
