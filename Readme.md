@@ -135,6 +135,7 @@ gcloud run deploy backend \
   --allow-unauthenticated \
   --port=8000
 
+
 # Remove
 conda deactivate  
 conda remove -n recycling-ai --all
