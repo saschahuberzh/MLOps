@@ -1,0 +1,37 @@
+{
+  "metal": {
+    "material": "Metal",
+    "more_info_url": "https://example.com/metal-info",
+    "recycle_url": "https://example.com/metal-recycle"
+  },
+  "plastic": {
+    "material": "Plastic",
+    "more_info_url": "https://example.com/plastic-info",
+    "recycle_url": "https://example.com/plastic-recycle"
+  },
+  "glass": {
+    "material": "Glass",
+    "more_info_url": "https://example.com/glass-info",
+    "recycle_url": "https://example.com/glass-recycle"
+  },
+  "paper": {
+    "material": "Paper",
+    "more_info_url": "https://example.com/paper-info",
+    "recycle_url": "https://example.com/paper-recycle"
+  },
+  "cardboard": {
+    "material": "Cardboard",
+    "more_info_url": "https://example.com/cardboard-info",
+    "recycle_url": "https://example.com/cardboard-recycle"
+  },
+  "biological": {
+    "material": "Organic waste",
+    "more_info_url": "https://example.com/organic-info",
+    "recycle_url": "https://example.com/organic-recycle"
+  },
+  "trash": {
+    "material": "Residual waste",
+    "more_info_url": "https://example.com/trash-info",
+    "recycle_url": "https://example.com/trash-recycle"
+  }
+}

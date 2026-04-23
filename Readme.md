@@ -22,6 +22,10 @@ uvicorn backend:app --reload
 # Run frontend and backend in docker
 docker compose up --build
 
+# Information
+Dataset: https://huggingface.co/datasets/kdkd1/waste-garbage-management-dataset
+Alternative Dataset: https://www.kaggle.com/datasets/alistairking/recyclable-and-household-waste-classification
+
 # Remove
 conda deactivate
 conda remove -n recycling-ai --all
