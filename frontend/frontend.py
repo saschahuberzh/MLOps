@@ -53,13 +53,9 @@ if uploaded_file is not None:
                 confidence = result.get("confidence")
                 more_info = result.get("more_info_url")
                 recycle_info = result.get("recycle_url")
-                raw_label = result.get("label")
 
                 st.subheader("Result")
                 st.write(f"**Material:** {material}")
-
-                if raw_label:
-                    st.write(f"**Class:** {raw_label}")
 
                 if confidence is not None:
                     try:
