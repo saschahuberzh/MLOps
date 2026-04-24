@@ -8,7 +8,7 @@ from PIL import Image
 st.set_page_config(page_title="Recycling Classifier", page_icon="♻️", layout="centered")
 
 st.title("♻️ Recycling Classifier")
-st.write("Upload an image. The app sends it to your FastAPI backend and displays the prediction.")
+st.write("Upload an image. The app sends it to your FastAPI backend and displays the prediction. v. 12.4")
 
 API_URL = os.getenv("BACKEND_PREDICT_URL", "http://localhost:8000/predict")
 TIMEOUT_SECONDS = 60

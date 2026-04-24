@@ -128,12 +128,12 @@ Cloud run api aktivieren:
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 
 Run backend:
-gcloud run deploy recycling-backend \ 
-  --image=europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/backend:latest \ 
-  --region=europe-west6 \  
-  --platform=managed \                                                                                 
+gcloud run deploy recycling-backend \
+  --image=europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/backend:latest \
+  --region=europe-west6 \
+  --platform=managed \
   --allow-unauthenticated \
-  --port=8000  
+  --port=8000
 
 Run frontend:
 gcloud run deploy recycling-frontend \

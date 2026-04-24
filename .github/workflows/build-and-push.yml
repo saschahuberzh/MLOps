@@ -94,4 +94,23 @@ jobs:
         run: docker compose -f docker-compose.prod.yml build --no-cache
 
       - name: Push images
-        run: docker compose -f docker-compose.prod.yml build --no-cache
+        run: docker compose -f docker-compose.prod.yml push
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy recycling-backend \
+            --image=europe-west6-docker.pkg.dev/${PROJECT_ID}/${GAR_REPOSITORY}/backend:latest \
+            --region=${GAR_LOCATION} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8000
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          gcloud run deploy recycling-frontend \
+            --image=europe-west6-docker.pkg.dev/${PROJECT_ID}/${GAR_REPOSITORY}/frontend:latest \
+            --region=${GAR_LOCATION} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8501 \
+            --set-env-vars BACKEND_PREDICT_URL=https://recycling-backend-93698602367.europe-west6.run.app/predict
