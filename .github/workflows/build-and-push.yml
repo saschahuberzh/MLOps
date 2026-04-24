@@ -1,9 +1,8 @@
-name: Build and Push to Artifact Registry with Compose (DEBUG)
+name: Build and Push Docker Images with Model
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -13,14 +12,15 @@ permissions:
 env:
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
-  GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+  GAR_REPOSITORY: recycling-ai
+  MODEL_VERSION: model-v1
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -43,105 +43,42 @@ jobs:
       - name: Install DVC
         run: pip install "dvc[gs]"
 
-      - name: Show DVC config
-        run: |
-          echo "=== DVC REMOTES ==="
-          dvc remote list || true
-          echo "=== .dvc/config ==="
-          cat .dvc/config || true
-
-      - name: Pull model from model-v1
-        shell: bash
+      - name: Pull model from model version
         run: |
           set -e
 
-          echo "=== CURRENT COMMIT ==="
-          git rev-parse HEAD
-
-          echo "=== SWITCH TO TAG model-v1 ==="
-          git checkout model-v1
-
-          echo "=== FILES BEFORE DVC PULL ==="
-          find . -maxdepth 3 -type f | sort
-
-          echo "=== RUN DVC PULL ==="
+          git checkout "${MODEL_VERSION}"
           dvc pull -v
-
-          echo "=== FILES AFTER DVC PULL ==="
-          find . -maxdepth 4 -type f | sort
-
-          echo "=== SEARCH MODEL ==="
-          find . -name "model.pt" || echo "model.pt NOT FOUND"
-
-          echo "=== SEARCH LABELS ==="
-          find . -name "labels.json" || echo "labels.json NOT FOUND"
-
-      - name: Copy model to correct path
-        shell: bash
-        run: |
-          set -e
-
-          echo "=== COPY PHASE ==="
 
           mkdir -p /tmp/artifacts
 
           if [ -f model.pt ]; then
-            echo "FOUND model.pt in root"
             cp model.pt /tmp/artifacts/model.pt
           elif [ -f model/model.pt ]; then
-            echo "FOUND model/model.pt"
             cp model/model.pt /tmp/artifacts/model.pt
           elif [ -f model/artifacts/model.pt ]; then
-            echo "FOUND model/artifacts/model.pt"
             cp model/artifacts/model.pt /tmp/artifacts/model.pt
           else
-            echo "ERROR: model.pt NOT FOUND ANYWHERE"
+            echo "model.pt not found"
             exit 1
           fi
 
           if [ -f model/artifacts/labels.json ]; then
-            echo "FOUND model/artifacts/labels.json"
             cp model/artifacts/labels.json /tmp/artifacts/labels.json
           elif [ -f labels.json ]; then
-            echo "FOUND labels.json in root"
             cp labels.json /tmp/artifacts/labels.json
           else
-            echo "ERROR: labels.json NOT FOUND"
+            echo "labels.json not found"
             exit 1
           fi
 
-          echo "=== TEMP FILES ==="
-          ls -lah /tmp/artifacts
-
-      - name: Restore original commit
-        shell: bash
-        run: |
-          set -e
-          echo "=== RESTORE MAIN COMMIT ==="
           git checkout "${GITHUB_SHA}"
-          git rev-parse HEAD
-
-      - name: Place model into repo
-        shell: bash
-        run: |
-          set -e
 
           mkdir -p model/artifacts
           cp /tmp/artifacts/model.pt model/artifacts/model.pt
           cp /tmp/artifacts/labels.json model/artifacts/labels.json
 
-          echo "=== FINAL FILES BEFORE BUILD ==="
-          ls -lah model || true
-          ls -lah model/artifacts || true
-
-          echo "=== CHECK FILES EXIST ==="
-          test -f model/artifacts/model.pt
-          test -f model/artifacts/labels.json
-
-      - name: Show dockerignore
-        run: |
-          echo "=== .dockerignore ==="
-          cat .dockerignore || echo "No .dockerignore"
+          ls -lah model/artifacts
 
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
@@ -155,28 +92,6 @@ jobs:
 
       - name: Build images
         run: docker compose build --no-cache
-
-      - name: Inspect backend image filesystem
-        run: |
-          docker compose run --rm --entrypoint sh backend -c '
-            echo "=== /app ==="
-            ls -lah /app
-
-            echo "=== /app/model ==="
-            ls -lah /app/model || true
-
-            echo "=== /app/model/artifacts ==="
-            ls -lah /app/model/artifacts || true
-
-            echo "=== SEARCH MODEL ==="
-            find /app -name "model.pt" || echo "model.pt NOT FOUND"
-
-            echo "=== SEARCH LABELS ==="
-            find /app -name "labels.json" || echo "labels.json NOT FOUND"
-
-            echo "=== SEARCH DVC FILES ==="
-            find /app -name "*.dvc" || true
-          '
 
       - name: Push images
         run: docker compose push
