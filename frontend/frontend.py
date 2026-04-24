@@ -1,4 +1,5 @@
 import os
+import base64
 from io import BytesIO
 
 import requests
@@ -7,21 +8,38 @@ from PIL import Image
 
 st.set_page_config(page_title="Recycling Classifier", page_icon="♻️", layout="centered")
 
+# 👉 Weniger Abstände (macht Seite kompakter)
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+h1 {
+    margin-bottom: 0.5rem;
+}
+
+p {
+    margin-bottom: 0.5rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("♻️ Recycling Classifier")
-st.write("Upload an image. The app sends it to your FastAPI backend and displays the prediction.")
+st.caption("Upload an image. The app sends it to your FastAPI backend and displays the prediction.")
 
 API_URL = os.getenv("BACKEND_PREDICT_URL", "http://localhost:8000/predict")
 TIMEOUT_SECONDS = 60
 
 
-@st.cache_data(show_spinner=False)
-def load_image_preview(file_bytes: bytes) -> Image.Image:
-    return Image.open(BytesIO(file_bytes))
+def make_preview_base64(file_bytes: bytes) -> str:
+    image = Image.open(BytesIO(file_bytes)).convert("RGB")
+    image.thumbnail((100, 100))
 
-
-def resize_image(image: Image.Image, max_size=(400, 400)) -> Image.Image:
-    image.thumbnail(max_size)
-    return image
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
 
 
 uploaded_file = st.file_uploader(
@@ -34,13 +52,32 @@ st.caption(f"Current backend: `{API_URL}`")
 
 if uploaded_file is not None:
     file_bytes = uploaded_file.getvalue()
+    preview_base64 = make_preview_base64(file_bytes)
 
-    preview = load_image_preview(file_bytes)
-    preview = resize_image(preview)
+    # 👉 Bild kompakt + mittig
+    st.markdown(
+        f"""
+        <div style="text-align:center; margin-top:10px;">
+            <img src="data:image/png;base64,{preview_base64}" width="100">
+            <div style="color:#777; margin-top:5px;">Preview</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.image(preview, caption="Preview", width=300)
+    # 👉 kleiner Abstand statt riesiger Lücke
+    st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
 
-    if st.button("Analyze image", type="primary"):
+    # 👉 Button mittig (stabil)
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        analyze_clicked = st.button(
+            "Analyze image",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if analyze_clicked:
         with st.spinner("Sending image to backend and waiting for response..."):
             try:
                 files = {
