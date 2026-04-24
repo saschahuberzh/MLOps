@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   backend:
+    image: europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/backend:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -9,6 +10,7 @@ services:
       - "8000:8000"
 
   frontend:
+    image: europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/frontend:latest
     build:
       context: .
       dockerfile: frontend/Dockerfile
