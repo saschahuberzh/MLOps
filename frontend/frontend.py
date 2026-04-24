@@ -8,7 +8,7 @@ from PIL import Image
 st.set_page_config(page_title="Recycling Classifier", page_icon="♻️", layout="centered")
 
 st.title("♻️ Recycling Classifier")
-st.write("Upload an image. The app sends it to your FastAPI backend and displays the prediction. v. 12.4")
+st.write("Upload an image. The app sends it to your FastAPI backend and displays the prediction.")
 
 API_URL = os.getenv("BACKEND_PREDICT_URL", "http://localhost:8000/predict")
 TIMEOUT_SECONDS = 60
@@ -17,6 +17,11 @@ TIMEOUT_SECONDS = 60
 @st.cache_data(show_spinner=False)
 def load_image_preview(file_bytes: bytes) -> Image.Image:
     return Image.open(BytesIO(file_bytes))
+
+
+def resize_image(image: Image.Image, max_size=(400, 400)) -> Image.Image:
+    image.thumbnail(max_size)
+    return image
 
 
 uploaded_file = st.file_uploader(
@@ -29,8 +34,11 @@ st.caption(f"Current backend: `{API_URL}`")
 
 if uploaded_file is not None:
     file_bytes = uploaded_file.getvalue()
+
     preview = load_image_preview(file_bytes)
-    st.image(preview, caption="Preview", use_container_width=True)
+    preview = resize_image(preview)
+
+    st.image(preview, caption="Preview", width=300)
 
     if st.button("Analyze image", type="primary"):
         with st.spinner("Sending image to backend and waiting for response..."):

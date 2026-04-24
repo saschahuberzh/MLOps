@@ -13,7 +13,7 @@ env:
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   GAR_LOCATION: ${{ vars.GAR_LOCATION }}
   GAR_REPOSITORY: recycling-ai
-  MODEL_VERSION: model-v1
+  MODEL_VERSION: ${{ vars.MODEL_VERSION }}
 
 jobs:
   build-and-push:
