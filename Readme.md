@@ -30,7 +30,7 @@ cd backend
 uvicorn backend:app --reload
 
 # Run frontend and backend in docker
-docker compose up --build
+docker compose -f docker-compose.local.yml up --build
 
 # Dataset
 Dataset: https://huggingface.co/datasets/kdkd1/waste-garbage-management-dataset  
@@ -128,13 +128,25 @@ Cloud run api aktivieren:
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 
 Run backend:
-gcloud run deploy backend \
-  --image=europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/backend:latest \
+gcloud run deploy recycling-backend \ 
+  --image=europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/backend:latest \ 
+  --region=europe-west6 \  
+  --platform=managed \                                                                                 
+  --allow-unauthenticated \
+  --port=8000  
+
+Run frontend:
+gcloud run deploy recycling-frontend \
+  --image=europe-west6-docker.pkg.dev/mlops-zhaw-494207/recycling-ai/frontend:latest \
   --region=europe-west6 \
   --platform=managed \
   --allow-unauthenticated \
-  --port=8000
+  --port=8501 \
+  --set-env-vars BACKEND_PREDICT_URL=https://recycling-backend-93698602367.europe-west6.run.app/predict
 
+Delete running containers:
+gcloud run services delete recycling-backend --region=europe-west6
+gcloud run services delete recycling-frontend --region=europe-west6
 
 # Remove
 conda deactivate  
