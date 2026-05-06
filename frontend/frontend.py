@@ -1,5 +1,6 @@
 import os
 import base64
+import re
 from io import BytesIO
 
 import requests
@@ -31,6 +32,8 @@ st.caption("Upload an image. The app sends it to your FastAPI backend and displa
 
 API_URL = os.getenv("BACKEND_PREDICT_URL", "http://localhost:8000/predict")
 TIMEOUT_SECONDS = 60
+RECYCLING_MAP_BASE_URL = "https://recycling-map.ch"
+RECYCLING_MAP_LANG = "en"
 
 
 def make_preview_base64(file_bytes: bytes) -> str:
@@ -40,6 +43,136 @@ def make_preview_base64(file_bytes: bytes) -> str:
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode()
+
+
+def normalize_material_name(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
+
+
+@st.cache_data(ttl=60 * 60 * 24)
+def fetch_recycling_map_materials():
+    collectibles_url = f"{RECYCLING_MAP_BASE_URL}/{RECYCLING_MAP_LANG}/collectible/data"
+    details_url = f"{RECYCLING_MAP_BASE_URL}/api/collectible/{RECYCLING_MAP_LANG}"
+
+    collectibles_response = requests.get(collectibles_url, timeout=15)
+    collectibles_response.raise_for_status()
+    collectibles = collectibles_response.json()
+
+    details_response = requests.get(details_url, timeout=15)
+    details_response.raise_for_status()
+    details = details_response.json()
+    details_by_id = {entry.get("id"): entry for entry in details}
+
+    merged = []
+    for item in collectibles:
+        material_id = item.get("id")
+        slug = item.get("slug")
+        name = (item.get("name") or "").strip()
+        if not material_id or not slug or not name:
+            continue
+
+        info = details_by_id.get(material_id, {})
+        merged.append(
+            {
+                "id": material_id,
+                "slug": slug,
+                "name": name,
+                "normalized_name": normalize_material_name(name),
+                "info_collect": info.get("info_collect"),
+                "info_nocollect": info.get("info_nocollect"),
+                "info_important": info.get("info_important"),
+            }
+        )
+
+    return merged
+
+
+def lookup_recycling_map_material(material: str):
+    normalized_target = normalize_material_name(material)
+    if not normalized_target:
+        return None
+
+    try:
+        materials = fetch_recycling_map_materials()
+    except requests.RequestException:
+        return None
+
+    exact_match = next(
+        (entry for entry in materials if entry["normalized_name"] == normalized_target),
+        None,
+    )
+    if exact_match:
+        return exact_match
+
+    contains_match = next(
+        (
+            entry
+            for entry in materials
+            if normalized_target in entry["normalized_name"]
+            or entry["normalized_name"] in normalized_target
+        ),
+        None,
+    )
+    return contains_match
+
+
+def make_slug(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", (value or "").lower()).strip("-")
+    return slug or "location"
+
+
+@st.cache_data(ttl=60 * 60)
+def fetch_top_recycling_places(collectible_id: int, limit: int = 3):
+    if not collectible_id:
+        return []
+
+    url = f"{RECYCLING_MAP_BASE_URL}/api/collection-points/data"
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    points = response.json()
+
+    candidates = []
+    for point in points:
+        if point.get("active") != 1:
+            continue
+
+        materials = point.get("materials") or []
+        matched_material = next(
+            (material for material in materials if material.get("id") == collectible_id),
+            None,
+        )
+        if not matched_material:
+            continue
+
+        point_id = point.get("id")
+        name = (point.get("name") or "Collection point").strip()
+        street = (point.get("street") or "").strip()
+        score = matched_material.get("importance", 99)
+        name_slug = make_slug(name)
+        street_slug = make_slug(street) if street else "address"
+        detail_url = (
+            f"{RECYCLING_MAP_BASE_URL}/{RECYCLING_MAP_LANG}/collection-points/"
+            f"{point_id}/{name_slug}/{street_slug}"
+        )
+
+        candidates.append(
+            {
+                "name": name,
+                "street": street,
+                "zip_more": point.get("zip_more"),
+                "url": detail_url,
+                "score": score,
+            }
+        )
+
+    candidates.sort(
+        key=lambda x: (
+            x["score"],
+            str(x["zip_more"] or ""),
+            x["name"],
+        )
+    )
+    return candidates[:limit]
 
 
 uploaded_file = st.file_uploader(
@@ -98,6 +231,32 @@ if uploaded_file is not None:
                 confidence = result.get("confidence")
                 more_info = result.get("more_info_url")
                 recycle_info = result.get("recycle_url")
+                recycling_map_match = lookup_recycling_map_material(material)
+                more_information_text = None
+                top_recycling_places = []
+
+                if recycling_map_match:
+                    material_id = recycling_map_match["id"]
+                    slug = recycling_map_match["slug"]
+                    more_info = (
+                        f"{RECYCLING_MAP_BASE_URL}/{RECYCLING_MAP_LANG}/collected-items/"
+                        f"{material_id}-{slug}"
+                    )
+                    recycle_info = f"{RECYCLING_MAP_BASE_URL}/{RECYCLING_MAP_LANG}/map"
+                    info_sections = []
+                    if recycling_map_match.get("info_collect"):
+                        info_sections.append(f"Accepted: {recycling_map_match['info_collect']}")
+                    if recycling_map_match.get("info_nocollect"):
+                        info_sections.append(f"Not accepted: {recycling_map_match['info_nocollect']}")
+                    if recycling_map_match.get("info_important"):
+                        info_sections.append(f"Important: {recycling_map_match['info_important']}")
+                    if info_sections:
+                        more_information_text = "\n\n".join(info_sections)
+
+                    try:
+                        top_recycling_places = fetch_top_recycling_places(material_id, limit=3)
+                    except requests.RequestException:
+                        top_recycling_places = []
 
                 st.subheader("Result")
                 st.write(f"**Material:** {material}")
@@ -108,10 +267,19 @@ if uploaded_file is not None:
                     except (TypeError, ValueError):
                         st.write(f"**Confidence:** {confidence}")
 
-                if more_info:
-                    st.markdown(f"**More information:** [Link]({more_info})")
+                if more_information_text:
+                    st.markdown(f"**More information:**\n\n{more_information_text}")
+                elif more_info:
+                    st.markdown(f"**More information:** {more_info}")
 
-                if recycle_info:
+                if top_recycling_places:
+                    st.markdown("**Where to recycle (Top 3):**")
+                    for index, place in enumerate(top_recycling_places, start=1):
+                        location = place["name"]
+                        if place.get("street"):
+                            location = f"{location}, {place['street']}"
+                        st.markdown(f"{index}. [{location}]({place['url']})")
+                elif recycle_info:
                     st.markdown(f"**Where to recycle:** [Link]({recycle_info})")
 
                 with st.expander("Raw API response"):
