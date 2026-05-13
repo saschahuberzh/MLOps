@@ -41,6 +41,72 @@ Alternative Dataset: https://www.kaggle.com/datasets/alistairking/recyclable-and
 cd model  
 python train.py
 
+The training pipeline now uses all ten classes from the dataset: Metal, Glass, Biological, Paper, Battery, Trash, Cardboard, Shoes, Clothes, and Plastic.
+
+Airflow pipeline: the DAG lives in dags/recycling_training_dag.py and runs the training job in visible steps:
+- prepare_dataset
+- train_model
+- summarize_training
+
+Start Airflow from the project root (MLOps):
+```bash
+cd /home/surface/MLOps_project/MLOps
+export AIRFLOW_HOME="$PWD/.airflow"
+export AIRFLOW__CORE__DAGS_FOLDER="$PWD/dags"
+airflow standalone
+```
+
+In another shell (same env and exports), you can verify the DAG and tasks:
+```bash
+cd /home/surface/MLOps_project/MLOps
+conda activate recycling-ai
+export AIRFLOW_HOME="$PWD/.airflow"
+export AIRFLOW__CORE__DAGS_FOLDER="$PWD/dags"
+airflow dags list | grep recycling_model_training
+airflow tasks list recycling_model_training
+```
+
+To enable W&B logging for Airflow runs, set WANDB_PROJECT and optionally WANDB_RUN_NAME; use WANDB_MODE=online with WANDB_API_KEY for syncing, or leave it in offline mode for local-only logs.
+For local runs, export those variables in the same shell before starting Airflow or running python train.py.
+
+Example commands:
+```bash
+export WANDB_PROJECT=recycling-airflow-training
+export WANDB_RUN_NAME=recycling-model-local
+export WANDB_MODE=offline
+```
+
+For online syncing, use:
+```bash
+export WANDB_PROJECT=recycling-airflow-training
+export WANDB_RUN_NAME=recycling-model-local
+export WANDB_MODE=online
+export WANDB_API_KEY=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
+```
+
+
+To make the DAG available:
+````bash
+export  AIRFLOW_HOME="$PWD/.airflow"
+export AIRFLOW__CORE__DAGS_FOLDER="$PWD/dag
+
+```
+
+If airflow standalone fails after installing the requirements, upgrade typing_extensions once in the same environment:
+```bash
+pip install "typing_extensions>=4.14.1"
+```
+
+If the UI shows "The scheduler does not appear to be running":
+```bash
+cd /home/surface/MLOps_project/MLOps
+conda activate recycling-ai
+export AIRFLOW_HOME="$PWD/.airflow"
+export AIRFLOW__CORE__DAGS_FOLDER="$PWD/dags"
+airflow jobs check --job-type SchedulerJob
+airflow standalone
+```
+
 Wenn model abgespeichert werden soll:  
 dvc push  
 git add ../.dvc/config  

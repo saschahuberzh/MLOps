@@ -4,6 +4,7 @@
 numpy
 pandas
 pillow
+typing_extensions>=4.14.1
 
 # =========================
 # MACHINE LEARNING
@@ -39,6 +40,11 @@ wandb
 black
 ruff
 pytest
+
+# =========================
+# ORCHESTRATION
+# =========================
+apache-airflow==2.10.4
 
 
 # =========================
