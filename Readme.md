@@ -108,6 +108,7 @@ airflow standalone
 ```
 
 Wenn model abgespeichert werden soll:  
+dvc add artifacts/model.pt
 dvc push  
 git add ../.dvc/config  
 git add artifacts/model.pt.dvc  

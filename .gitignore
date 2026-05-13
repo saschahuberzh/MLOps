@@ -2,5 +2,5 @@ model/dataset_cache/
 model/artifacts/model.pt
 .airflow/
 dags/_pycache_
-model/artifacts/
+model/artifacts/prepared_dataset
 wandb/
