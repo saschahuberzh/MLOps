@@ -81,7 +81,7 @@ For online syncing, use:
 export WANDB_PROJECT=recycling-airflow-training
 export WANDB_RUN_NAME=recycling-model-local
 export WANDB_MODE=online
-export WANDB_API_KEY=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
+export WANDB_API_KEY=YOUR_API_KEY_HERE
 ```
 
 
