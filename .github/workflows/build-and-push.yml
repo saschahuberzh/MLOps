@@ -48,7 +48,22 @@ jobs:
           set -e
 
           git checkout "${MODEL_VERSION}"
+          # nach git checkout:
+          echo "PWD: $(pwd)"
+          git rev-parse --abbrev-ref HEAD || git rev-parse --short HEAD
+          git ls-tree -r HEAD --name-only | grep -E "model/artifacts|model.pt" || true
+          echo "Contents before dvc pull:"
+          ls -la model || true
+          ls -la model/artifacts || true
           dvc pull -v
+          # nach dvc pull:
+          dvc status -c
+          dvc list . model/artifacts || true
+          echo "Contents after dvc pull:"
+          ls -la model || true
+          ls -la model/artifacts || true
+
+
 
           mkdir -p /tmp/artifacts
 
